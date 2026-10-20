@@ -54,7 +54,7 @@
     <profile>
       <id>vulnerability-scan</id>
       <build><plugins><plugin>
-        <groupId>org.owasp</groupId><artifactId>dependency-check-maven</artifactId><version>12.2.0</version>
+        <groupId>org.owasp</groupId><artifactId>dependency-check-maven</artifactId><version>13.0.0</version>
         <configuration><failBuildOnCVSS>7</failBuildOnCVSS><nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable></configuration>
         <executions><execution><goals><goal>check</goal></goals></execution></executions>
       </plugin></plugins></build>
