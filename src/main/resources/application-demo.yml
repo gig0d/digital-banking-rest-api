@@ -1,0 +1,5 @@
+banking:
+  demo:
+    enabled: ${DEMO_ENABLED:false}
+    admin-email: ${DEMO_ADMIN_EMAIL:}
+    admin-password: ${DEMO_ADMIN_PASSWORD:}

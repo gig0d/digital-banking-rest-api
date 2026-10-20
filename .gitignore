@@ -1,0 +1,15 @@
+target/
+.tools/
+.idea/
+.vscode/
+*.iml
+.env
+.env.*
+!.env.example
+*.log
+secrets/
+*.pem
+*.key
+*.jks
+*.p12
+.DS_Store

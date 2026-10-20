@@ -1,0 +1,54 @@
+spring:
+  application:
+    name: digital-banking-rest-api
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/banking}
+    username: ${DB_USER:banking}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 10
+      connection-init-sql: SET TIME ZONE 'UTC'
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+server:
+  port: ${PORT:8080}
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+  shutdown: graceful
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db
+springdoc:
+  api-docs:
+    enabled: ${API_DOCS_ENABLED:false}
+  swagger-ui:
+    enabled: ${API_DOCS_ENABLED:false}
+    persist-authorization: false
+banking:
+  jwt:
+    issuer: ${JWT_ISSUER:urn:gig0d:digital-banking}
+    audience: ${JWT_AUDIENCE:digital-banking-api}
+    secret: ${JWT_SECRET}
+    ttl: PT15M
+  cors-origins: ${CORS_ORIGINS:}
+  demo:
+    enabled: false
