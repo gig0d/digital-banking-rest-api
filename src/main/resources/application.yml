@@ -18,6 +18,7 @@ spring:
     deserialization:
       fail-on-unknown-properties: true
 server:
+  address: ${SERVER_ADDRESS:127.0.0.1}
   port: ${PORT:8080}
   error:
     include-message: never

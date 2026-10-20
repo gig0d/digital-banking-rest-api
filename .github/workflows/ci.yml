@@ -1,0 +1,50 @@
+name: Build and test
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Verify with PostgreSQL Testcontainers
+        run: ./mvnw -B -ntp verify
+      - name: Build application container
+        run: docker build --tag digital-banking:ci .
+      - name: Verify Compose startup and synthetic API flow
+        shell: pwsh
+        run: |
+          ./scripts/New-LocalEnv.ps1
+          docker compose up -d --build --wait --wait-timeout 180
+          if ($LASTEXITCODE -ne 0) { throw 'Compose startup failed.' }
+          ./scripts/Demo-Flow.ps1
+      - name: Container diagnostics
+        if: failure()
+        run: docker compose logs --no-color
+      - name: Clean up disposable CI containers
+        if: always()
+        run: docker compose down --volumes --remove-orphans
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: test-results
+          path: |
+            target/surefire-reports/*.xml
+            target/failsafe-reports/*.xml
+          retention-days: 7
