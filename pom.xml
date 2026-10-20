@@ -15,7 +15,7 @@
   <description>Educational banking backend with transactional transfers and a double-entry ledger</description>
   <properties>
     <java.version>21</java.version>
-    <springdoc.version>3.0.3</springdoc.version>
+    <springdoc.version>3.1.1</springdoc.version>
   </properties>
   <dependencies>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-webmvc</artifactId></dependency>
