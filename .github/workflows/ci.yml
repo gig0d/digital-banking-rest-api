@@ -24,20 +24,23 @@ jobs:
           cache: maven
       - name: Verify with PostgreSQL Testcontainers
         run: ./mvnw -B -ntp verify
+      - name: Prepare synthetic Compose environment
+        id: compose-env
+        shell: pwsh
+        run: ./scripts/New-LocalEnv.ps1
       - name: Build application container
         run: docker build --tag digital-banking:ci .
       - name: Verify Compose startup and synthetic API flow
         shell: pwsh
         run: |
-          ./scripts/New-LocalEnv.ps1
           docker compose up -d --build --wait --wait-timeout 180
           if ($LASTEXITCODE -ne 0) { throw 'Compose startup failed.' }
           ./scripts/Demo-Flow.ps1
       - name: Container diagnostics
-        if: failure()
+        if: failure() && steps.compose-env.outcome == 'success'
         run: docker compose logs --no-color
       - name: Clean up disposable CI containers
-        if: always()
+        if: always() && steps.compose-env.outcome == 'success'
         run: docker compose down --volumes --remove-orphans
       - name: Upload test results
         if: always()

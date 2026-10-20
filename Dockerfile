@@ -1,4 +1,6 @@
 FROM eclipse-temurin:21-jdk-jammy AS build
+RUN apt-get update && apt-get install -y --no-install-recommends unzip \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /workspace
 COPY .mvn .mvn
 COPY mvnw pom.xml ./
