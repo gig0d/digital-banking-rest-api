@@ -24,6 +24,14 @@ server:
     include-stacktrace: never
     include-binding-errors: never
   shutdown: graceful
+logging:
+  level:
+    root: INFO
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+    org.springframework.jdbc: INFO
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: OFF
 management:
   endpoints:
     web:

@@ -11,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestValueException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
@@ -35,7 +37,7 @@ public class ApiErrors {
 
     @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class,
             ConstraintViolationException.class, HandlerMethodValidationException.class,
-            MethodArgumentTypeMismatchException.class})
+            MethodArgumentTypeMismatchException.class, MissingRequestValueException.class})
     ProblemDetail invalid(Exception ex) {
         // Never echo rejected values: these can include passwords and private customer data.
         return problem(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "The request contains invalid or unsupported values.");
@@ -50,6 +52,9 @@ public class ApiErrors {
     ProblemDetail constraint() {
         return problem(HttpStatus.CONFLICT, "CONSTRAINT_CONFLICT", "The request conflicts with an existing resource or business invariant.");
     }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    ProblemDetail missing() { return problem(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", "The resource was not found."); }
 
     @ExceptionHandler(TransientDataAccessException.class)
     ResponseEntity<ProblemDetail> contention() {
