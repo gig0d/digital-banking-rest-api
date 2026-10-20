@@ -23,7 +23,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(print = org.springframework.boot.webmvc.test.autoconfigure.MockMvcPrint.NONE)
 @ActiveProfiles("demo")
 class BankingIT extends PostgresSupport {
     @Autowired MockMvc mvc;
@@ -50,6 +50,43 @@ class BankingIT extends PostgresSupport {
                 .andExpect(jsonPath("$.components").doesNotExist());
         mvc.perform(get("/actuator/env")).andExpect(status().isUnauthorized());
         assertThat(jdbc.queryForObject("SELECT count(*) FROM flyway_schema_history WHERE success", Integer.class)).isGreaterThanOrEqualTo(2);
+    }
+    @Test
+    void openApiDeclaresBearerAuthenticationAndDoesNotRequireAuthForRegistration() throws Exception {
+        mvc.perform(get("/v3/api-docs")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"))
+                .andExpect(jsonPath("$.paths['/api/v1/transfers'].post").exists());
+        mvc.perform(get("/swagger-ui/index.html")).andExpect(status().isOk());
+    }
+    @Test
+    void profileAndAuthenticationValidationRejectsUnsafeRequestsWithoutEchoingSecrets() throws Exception {
+        String email = UUID.randomUUID() + "@example.test";
+        String body = "{\"email\":\"" + email + "\",\"password\":\"Synthetic-Password-42!\",\"fullName\":\"Customer\"}";
+        mvc.perform(post("/api/v1/auth/register").contentType("application/json").content(body)).andExpect(status().isCreated());
+        mvc.perform(post("/api/v1/auth/register").contentType("application/json").content(body)).andExpect(status().isConflict());
+        mvc.perform(post("/api/v1/auth/login").contentType("application/json").content("{\"email\":\"" + email + "\",\"password\":\"Wrong-Password-42!\"}"))
+                .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Wrong-Password"))));
+        mvc.perform(post("/api/v1/auth/register").contentType("application/json").content("{\"email\":\"invalid\",\"password\":\"short\",\"fullName\":\"\"}"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+        User customer = user(User.Role.CUSTOMER);
+        mvc.perform(delete("/api/v1/accounts").with(as(customer))).andExpect(status().isMethodNotAllowed());
+        mvc.perform(post("/api/v1/accounts").with(as(customer)).contentType("text/plain").content("CHECKING"))
+                .andExpect(status().isUnsupportedMediaType());
+    }
+    @Test
+    void adminCanFreezeUnfreezeReviewAuditButCannotCloseOrReadAsCustomer() throws Exception {
+        User customer = user(User.Role.CUSTOMER), admin = user(User.Role.ADMIN); UUID id = account(customer).id();
+        mvc.perform(patch("/api/v1/admin/accounts/" + id + "/status").with(as(admin)).contentType("application/json").content("{\"status\":\"FROZEN\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("FROZEN"));
+        assertThatThrownBy(() -> fund(admin, id, "10.00")).hasMessageContaining("active");
+        mvc.perform(patch("/api/v1/admin/accounts/" + id + "/status").with(as(admin)).contentType("application/json").content("{\"status\":\"ACTIVE\"}"))
+                .andExpect(status().isOk());
+        mvc.perform(patch("/api/v1/admin/accounts/" + id + "/status").with(as(admin)).contentType("application/json").content("{\"status\":\"CLOSED\"}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/v1/accounts/" + id).with(as(admin))).andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/admin/audit-events?size=1").with(as(admin))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1)).andExpect(jsonPath("$.content[0].password").doesNotExist());
     }
     @Test
     void registrationLoginAndProfileUpdateUseRealPasswordAndBearerValidation() throws Exception {

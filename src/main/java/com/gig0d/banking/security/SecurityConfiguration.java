@@ -99,7 +99,7 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    CorsConfigurationSource cors(@Value("${banking.cors-origins:}") String origins) {
+    CorsConfigurationSource corsConfigurationSource(@Value("${banking.cors-origins:}") String origins) {
         CorsConfiguration config = new CorsConfiguration();
         if (!origins.isBlank()) {
             List<String> allowed = Arrays.stream(origins.split(",")).map(String::strip).toList();

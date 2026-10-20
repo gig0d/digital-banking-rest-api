@@ -12,6 +12,8 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestValueException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -55,6 +57,19 @@ public class ApiErrors {
 
     @ExceptionHandler(NoResourceFoundException.class)
     ProblemDetail missing() { return problem(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", "The resource was not found."); }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    ResponseEntity<ProblemDetail> method(HttpRequestMethodNotSupportedException ex) {
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .allow(ex.getSupportedHttpMethods() == null ? new org.springframework.http.HttpMethod[0]
+                        : ex.getSupportedHttpMethods().toArray(org.springframework.http.HttpMethod[]::new))
+                .body(problem(HttpStatus.METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED", "This resource does not support the requested method."));
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    ProblemDetail mediaType() {
+        return problem(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "UNSUPPORTED_MEDIA_TYPE", "Use application/json for request bodies.");
+    }
 
     @ExceptionHandler(TransientDataAccessException.class)
     ResponseEntity<ProblemDetail> contention() {
